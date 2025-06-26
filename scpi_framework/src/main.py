@@ -17,6 +17,7 @@ def main():
     ps.run_list_and_log()
     ps.close()
     """
+    
     osc = Oscilloscope(mock=True)
     timebase, voltages = osc.waveform(n_points=1000, sample_rate=1000)
     peak_freqs, fig1, fig2 = osc.plot_waveform(timebase, voltages, sample_rate=1000)

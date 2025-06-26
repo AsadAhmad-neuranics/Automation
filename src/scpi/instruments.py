@@ -91,6 +91,37 @@ class PowerSupply:
                 f.write(f"{rdata[i]}, {rdata[dlog_count + i]}\n")
         print('Done')
 
+    def measure_current(self):
+        """Measure and return the current output from the power supply (in Amps)."""
+        current = float(self.ps.query('MEAS:CURR?'))
+        print(f"Measured current: {current} A")
+        return current
+    
+    def turn_on_time(self, threshold=0.95, timeout=5.0, interval=0.01):
+        """
+        Measure the turn-on time by enabling output and timing until current stabilizes.
+        threshold: Fraction of final current to consider as 'on' (e.g., 0.95 for 95%)
+        timeout: Maximum time to wait in seconds
+        interval: Time between measurements in seconds
+        """
+        self.ps.write('OUTP ON')
+        start_time = time.time()
+        currents = []
+        while True:
+            current = self.measure_current()
+            currents.append(current)
+            if len(currents) > 5:
+                avg = sum(currents[-5:]) / 5
+                if avg > 0 and current >= threshold * avg:
+                    break
+            if time.time() - start_time > timeout:
+                print("Timeout waiting for turn-on.")
+                break
+            time.sleep(interval)
+        turn_on_time = time.time() - start_time
+        print(f"Turn-on time: {turn_on_time:.3f} s")
+        return turn_on_time
+
     def close(self):
         self.ps.close()
         self.rm.close()
@@ -167,8 +198,60 @@ class Oscilloscope:
         if not self.mock and self.scope:
             self.scope.close()
             self.rm.close()
-        self.connected = False
+        self.connected = False#
 
+class SpectrumAnalyzer:
+    def __init__(self, address='GPIB0::10::INSTR', timeout=5000, mock=False):
+        self.mock = mock
+        self.connected = False
+        if not self.mock:
+            self.rm = pyvisa.ResourceManager()
+            self.sa = self.rm.open_resource(address)
+            self.sa.write_termination = '\n'
+            self.sa.timeout = timeout
+            self.connected = True
+            idn = self.sa.query('*IDN?')
+            print(f'*IDN? = {idn.rstrip()}')
+        else:
+            self.sa = None
+            self.connected = True
+
+    def configure(self, start_freq=1e3, stop_freq=1e6, rbw=1e3):
+        if not self.mock:
+            self.sa.write(f'FREQ:START {start_freq}')
+            self.sa.write(f'FREQ:STOP {stop_freq}')
+            self.sa.write(f'BAND {rbw}')
+        else:
+            self.start_freq = start_freq
+            self.stop_freq = stop_freq
+            self.rbw = rbw
+
+    def trace(self, n_points=1001):
+        if not self.mock:
+            self.sa.write(f'FORM ASC')
+            self.sa.write(f'TRAC:MODE WRIT')
+            data = self.sa.query_ascii_values(f'TRAC? TRACE1')
+            freqs = np.linspace(float(self.sa.query('FREQ:START?')), float(self.sa.query('FREQ:STOP?')), len(data))
+            return freqs, np.array(data)
+        else:
+            freqs = np.linspace(self.start_freq, self.stop_freq, n_points)
+            noise = np.random.normal(0, 1, n_points)
+            return freqs, noise
+
+    def plot_trace(self, freqs, spectrum):
+        plt.figure()
+        plt.plot(freqs, spectrum)
+        plt.xlabel('Frequency (Hz)')
+        plt.ylabel('Magnitude')
+        plt.title('Spectrum Analyzer Trace')
+        plt.grid(True)
+        plt.show()
+
+    def close(self):
+        if not self.mock and self.sa:
+            self.sa.close()
+            self.rm.close()
+        self.connected = False
 
 
 
@@ -203,4 +286,3 @@ class Instrument:
 '''
 
 
-        

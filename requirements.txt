@@ -1,5 +1,4 @@
 numpy
 matplotlib
 pyvisa
-pandas
-pyserial
+pytest

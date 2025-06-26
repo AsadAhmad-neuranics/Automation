@@ -13,6 +13,8 @@ To install the required dependencies, run:
 
 ```
 pip install -r requirements.txt
+```
+
 ## Contributing
 Contributions are welcome! Please feel free to submit a pull request or open an issue for any enhancements or bug fixes.
 

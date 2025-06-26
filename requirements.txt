@@ -2,3 +2,5 @@ numpy
 matplotlib
 pyvisa
 pytest
+time
+scipy

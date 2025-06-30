@@ -1,9 +1,8 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import pyvisa
 import time
-from scipy.signal import find_peaks
 from instruments import Oscilloscope, SpectrumAnalyzer, PowerSupply, TemperatureChamber
+
+initial_temp = 25  # Default temperature for measurements
 
 class V_os:
     """
@@ -12,7 +11,7 @@ class V_os:
     Methods
     -------
     measure(v_in=0.0, channel=1, n_points=1000, sample_rate=1000):
-        Sets the input voltage, measures the output waveform, and returns the typical (mean) and maximum offset voltages.
+        Sets the input voltage, measures the output waveform, and returns the typical (84th percentile: mean+std) and maximum offset voltages.
     close():
         Closes the power supply and oscilloscope connections.
     """
@@ -21,7 +20,7 @@ class V_os:
         self.ps = PowerSupply(address=ps_address)
         self.osc = Oscilloscope(address=osc_address)
         self.tc = TemperatureChamber(address=chamber_address)
-        self.tc.set_temperature(25)  # Set initial temperature
+        self.tc.set_temperature(initial_temp)  # Set initial temperature
 
     def measure(self, v_in=0.0, channel=1, n_points=1000, sample_rate=1000):
         # Set input voltage to v_in
@@ -33,7 +32,9 @@ class V_os:
         v_offset = voltages / self.gain  # List of V_offset values
         self.ps.ps.write('OUTP OFF')
         self.V_in = v_in
-        self.V_typical = np.mean(v_offset)  # Average output voltage
+        mean = np.mean(v_offset)
+        std = np.std(v_offset)
+        self.V_typical = mean + 0.47 * std  # 68th percentile
         self.V_max = np.amax(v_offset)  # Maximum output voltage
 
         return self.V_typical, self.V_max
@@ -74,10 +75,11 @@ class V_os_drift(V_os):
             vtyp_list.append(vtyp)
             vmax_list.append(vmax)
             actual_temps.append(actual_temp)
-            #print(f"T = {actual_temp:.2f} °C, V_typ = {vtyp:.6f} V, V_max = {vmax:.6f} V")
         # Calculate gradient (dV_typ/dT) at each temperature
         grad_vtyp = np.gradient(vtyp_list, actual_temps)
-        drift_typ = np.mean(grad_vtyp)
+        mean_grad = np.mean(grad_vtyp)
+        std_grad = np.std(grad_vtyp)
+        drift_typ = mean_grad + 0.47 * std_grad  # 68th percentile
         drift_max = np.amax(grad_vtyp)
 
         return drift_typ, drift_max
@@ -104,17 +106,16 @@ class I_B:
     Methods
     -------
     measure_ib(v_in=0.0, channel=1, n_points=1000, sample_rate=1000):
-        Sets the input voltage, measures the voltage drop across the resistor, and calculates the input bias current.
+        Sets the input voltage, measures the voltage drop across the resistor, and calculates the input bias current (typical = 84th percentile: mean+std).
     close():
         Closes the power supply and oscilloscope connections.
     """
-    def __init__(self, gain, ps_address='GPIB0::5::INSTR', osc_address='SPIB0::7::INSTR', chamber_address='GPIB0::12::INSTR',res: float = 10000, temp=25):
+    def __init__(self, gain, ps_address='GPIB0::5::INSTR', osc_address='SPIB0::7::INSTR', chamber_address='GPIB0::12::INSTR',res: float = 10000):
         self.gain = gain
         self.ps = PowerSupply(address=ps_address)
         self.osc = Oscilloscope(address=osc_address)
         self.tc = TemperatureChamber(address=chamber_address)
-        self.tc.set_temperature(temp)  # Set initial temperature
-        self.temperatre = self.tc.get_temperature()
+        self.tc.set_temperature(initial_temp)  # Set initial temperature
         self.resistance = res  # Resistance in ohms
 
     def measure_ib(self, v_in=0.0, channel=1, n_points=1000, sample_rate=1000):
@@ -126,7 +127,9 @@ class I_B:
         self.ps.ps.write('OUTP ON')
         time.sleep(1)  # Wait for stabilization
         timebase, voltages = self.osc.waveform(channel=channel, n_points=n_points, sample_rate=sample_rate)
-        v_typ = np.mean(voltages) / self.gain  # Average voltage drop across resistor
+        mean = np.mean(voltages) / self.gain  # Average voltage drop across resistor
+        std = np.std(voltages) / self.gain
+        v_typ = mean + 0.47 * std  # 68th percentile
         v_max = np.amax(voltages) / self.gain
         ib_typ = v_typ / self.resistance  # Input bias current in Amps
         ib_max = v_max / self.resistance

@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pyvisa
 from classes.instruments import PowerSupply, Oscilloscope, SpectrumAnalyzer, TemperatureChamber
-from classes.measurements import V_os, V_os_drift, I_B
+from classes.measurements import OpenLoopGain, InputOffsetVoltage, InputOffsetVoltage_drift, InputBiasCurrent
 
 def main():
     # Initialize VISA resource manager

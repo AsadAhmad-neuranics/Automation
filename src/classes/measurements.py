@@ -3,8 +3,70 @@ import time
 from .instruments import Oscilloscope, SpectrumAnalyzer, PowerSupply, TemperatureChamber
 
 initial_temp = 25  # Default temperature for measurements
+gain_currently = 1.0 # Default gain for measurements, can be adjusted as needed
 
-class V_os:
+class OpenLoopGain:
+    def __init__(self, input_signal, output_signal):
+        """
+        Automates the A_OL measurement with input and output signals to calculate the gain of the ASIC.
+
+        Parameters
+        ----------
+        input_signal : array-like
+            The input signal waveform.
+        output_signal : array-like
+            The output signal waveform.
+        gain : float
+            The gain of the amplifier circuit.
+        """
+        
+        osc = Oscilloscope()
+        
+        self.input_signal = input_signal
+        self.output_signal = output_signal
+    
+    def measure_gain(self):
+        """
+        Measures the gain of the amplifier circuit by calculating the ratio of output to input signal.
+
+        Returns
+        -------
+        float
+            The calculated gain.
+        """
+        if len(self.input_signal) != len(self.output_signal):
+            raise ValueError("Input and output signals must have the same length.")
+        
+        # Calculate gain as the ratio of output to input
+        gain_array = self.output_signal / self.input_signal
+        gain_mean = np.mean(gain_array)
+        gain_std = np.std(gain_array)
+        gain_typical = gain_mean +0.47 * gain_std # 68th percentile
+        gain_min = np.amin(gain_array)
+        gain_currently = gain_mean # Update the global gain variable
+        print(gain_currently)
+        return gain_typical, gain_min
+
+class GainBandwidthProduct(OpenLoopGain):
+    def __init__(self, input_signal, output_signal, frequency=[]):
+        """
+        Extends OpenLoopGain to calculate the Gain-Bandwidth Product (GBP) of the amplifier.
+
+        Parameters
+        ----------
+        input_signal : array-like
+            The input signal waveform.
+        output_signal : array-like
+            The output signal waveform.
+        frequency : array-like, optional
+            The frequency of the input signal. If not provided, it will be calculated based on the input signal.
+        """
+        super().__init__(input_signal, output_signal)
+        self.frequency = frequency if frequency else np.linspace(1, 1000, len(input_signal))
+
+
+
+class InputOffsetVoltage:
     """
     Automates the measurement of input offset voltage (V_os) for an op-amp or ASIC using a programmable power supply and oscilloscope.
 
@@ -15,7 +77,7 @@ class V_os:
     close():
         Closes the power supply and oscilloscope connections.
     """
-    def __init__(self, gain):
+    def __init__(self, gain=gain_currently):
         self.gain = gain
         self.ps = PowerSupply()
         self.osc = Oscilloscope()
@@ -44,7 +106,7 @@ class V_os:
         self.osc.close()
         self.tc.close()
 
-class V_os_drift(V_os):
+class InputOffsetVoltage_drift(InputOffsetVoltage):
     """
     Extends V_os to automate the measurement of input offset voltage drift with temperature using a temperature chamber.
 
@@ -55,7 +117,7 @@ class V_os_drift(V_os):
     close():
         Closes the power supply, oscilloscope, and temperature chamber connections.
     """
-    def __init__(self, gain):
+    def __init__(self, gain=gain_currently):
         super().__init__(gain)
 
     def measure_drift(self, temp_list, v_in=0.0, channel=1, n_points=1000, sample_rate=1000, settle_time=120):
@@ -88,7 +150,7 @@ class V_os_drift(V_os):
         super().close()
 
 
-class I_B:
+class InputBiasCurrent:
     """
     Automates the measurement of input bias current (I_B) for an op-amp by measuring the voltage drop across a high-value resistor in series with the input.
 
@@ -110,7 +172,7 @@ class I_B:
     close():
         Closes the power supply and oscilloscope connections.
     """
-    def __init__(self, gain, res: float = 10000):
+    def __init__(self, gain=gain_currently, res: float = 10000):
         self.gain = gain
         self.ps = PowerSupply()
         self.osc = Oscilloscope()

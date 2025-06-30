@@ -19,130 +19,39 @@ class PowerSupply:
         self.connected = False
 
 class Oscilloscope:
-    def __init__(self, address='USB0::0x0000::0x0000::INSTR', timeout=5000, mock=False):
-        self.mock=mock
-        self.connected = False
-        if not self.mock:
-            self.rm = pyvisa.ResourceManager()
-            self.scope = self.rm.open_resource(address)
-            self.scope.write_termination = '\n' # type: ignore
-            self.scope.timeout = timeout
-            self.connected = True
-            idn = self.scope.query('*IDN?') # type: ignore
-            print(f'*IDN? = {idn.rstrip()}')
-        else:
-            self.scope = None
-            self.connected = True # For mock mode
+    def __init__(self, address='USB0::0x0000::0x0000::INSTR', timeout=5000):
+        self.rm = pyvisa.ResourceManager()
+        self.osc = self.rm.open_resource(address)
+        self.osc.write_termination = '\n'
+        self.osc.timeout = timeout
+        self.connected = True
+        self.ps.write('*RST')
     
-    def waveform(self, channel=1, n_points=1000, sample_rate=1e3):
-        """Aquire waveform data from the oscilloscope or generate mock data."""
-        if not self.mock:
-            # Example SCPI commands, adjust for specific oscilloscope model
-            self.scope.write(f":WAV:SOUR CHAN{channel}") # type: ignore
-            self.scope.write(":WAV:MODE NORM") # type: ignore
-            self.scope.write(f":WAV:POIN {n_points}") # type: ignore
-            raw_data = self.scope.query_binary_values(":WAV:DATA?", datatype='B', container=np.array) # type: ignore
-            voltages = raw_data # times some scale factor if needed
-            timebase = np.linspace(0, n_points / sample_rate, n_points)
-        else:
-            # Generate mock signal data (heartbeat-like waveform, magnetic wave)
-            timebase = np.linspace(0, n_points / sample_rate, n_points)
-            voltages = np.sin(np.random.randint(1,10)*np.pi*np.random.randint(10,100)*timebase) + np.random.randint(0,2)*np.sin(np.random.randint(1,10)*np.pi*np.random.randint(50,200)*timebase) + np.random.randint(0,1)*np.sin(np.random.randint(1,10)*np.pi*np.random.randint(5,100)*timebase)
-            voltages += np.random.randint(0,9) * np.random.randn(n_points)/10 # Add some noise
-        return timebase, voltages
-    
-    def plot_waveform(self, timebase, voltages, sample_rate=1e3, peak_height=None):
-        """Plot the time-domain waveform and its frequency spectrum"""
-        # Plot waveform
-        fig1, ax1 = plt.subplots()
-        ax1.plot(timebase, voltages, marker='o', linestyle='--', color='salmon')
-        ax1.set_xlabel('Time (s)')
-        ax1.set_ylabel('Voltage (V)')
-        ax1.set_title('Oscilloscope Waveform')
-        ax1.grid(True)
-
-        # FFT and spectrum plot
-        N = len(voltages)
-        yf = np.fft.fft(voltages)
-        xf = np.fft.fftfreq(N, 1 / sample_rate)
-        pos_mask = xf >= 0 # Filter out negative frequencies
-
-        spectrum = np.abs(yf[pos_mask])
-        freqs = xf[pos_mask]
+    def input_signal_sin(self, channel=1, n_points=1000, frequency=1000, amplitude=1.0, offset=0.0):
+        """
+        Generates a sine wave input signal.
         
-        if peak_height is None:
-            peak_height = 0.1 * np.max(spectrum) # 10% of max by default
-        peak_indices, _ = find_peaks(spectrum, height=peak_height)
-        peak_freqs = freqs[peak_indices].tolist()
-
-        fig2, ax2 = plt.subplots()
-        ax2.plot(xf[pos_mask], np.abs(yf[pos_mask]), marker='o', linestyle='-', color='royalblue')
-        ax2.set_xlabel('Frequency (Hz)')
-        ax2.set_ylabel('Magnitude')
-        ax2.set_title('Spectral Analysis (FFT)')
-        ax2.grid(True)
-
-        plt.show()
-        return peak_freqs, fig1, fig2
-
-    def close(self):
-        if not self.mock and self.scope:
-            self.scope.close()
-            self.rm.close()
-        self.connected = False#
-
-class SpectrumAnalyzer:
-    def __init__(self, address='USB0::0x0000::0x0000::INSTR', timeout=5000, mock=False):
-        self.mock = mock
-        self.connected = False
-        if not self.mock:
-            self.rm = pyvisa.ResourceManager()
-            self.sa = self.rm.open_resource(address)
-            self.sa.write_termination = '\n' # type: ignore
-            self.sa.timeout = timeout
-            self.connected = True
-            idn = self.sa.query('*IDN?') # type: ignore
-            print(f'*IDN? = {idn.rstrip()}')
-        else:
-            self.sa = None
-            self.connected = True
-
-    def configure(self, start_freq=1e3, stop_freq=1e6, rbw=1e3):
-        if not self.mock:
-            self.sa.write(f'FREQ:START {start_freq}') # type: ignore
-            self.sa.write(f'FREQ:STOP {stop_freq}') # type: ignore
-            self.sa.write(f'BAND {rbw}') # type: ignore
-        else:
-            self.start_freq = start_freq
-            self.stop_freq = stop_freq
-            self.rbw = rbw
-
-    def trace(self, n_points=1001):
-        if not self.mock:
-            self.sa.write(f'FORM ASC') # type: ignore
-            self.sa.write(f'TRAC:MODE WRIT') # type: ignore
-            data = self.sa.query_ascii_values(f'TRAC? TRACE1') # type: ignore
-            freqs = np.linspace(float(self.sa.query('FREQ:START?')), float(self.sa.query('FREQ:STOP?')), len(data)) # type: ignore
-            return freqs, np.array(data)
-        else:
-            freqs = np.linspace(self.start_freq, self.stop_freq, n_points)
-            noise = np.random.normal(0, 1, n_points)
-            return freqs, noise
-
-    def plot_trace(self, freqs, spectrum):
-        plt.figure()
-        plt.plot(freqs, spectrum)
-        plt.xlabel('Frequency (Hz)')
-        plt.ylabel('Magnitude')
-        plt.title('Spectrum Analyzer Trace')
-        plt.grid(True)
-        plt.show()
-
-    def close(self):
-        if not self.mock and self.sa:
-            self.sa.close()
-            self.rm.close()
-        self.connected = False
+        Parameters
+        ----------
+        channel : int
+            The oscilloscope channel to use.
+        n_points : int
+            Number of points in the signal.
+        frequency : float
+            Frequency of the sine wave.
+        amplitude : float
+            Amplitude of the sine wave.
+        offset : float
+            Offset to apply to the sine wave.
+        
+        Returns
+        -------
+        np.ndarray
+            The generated sine wave signal.
+        """
+        t = np.linspace(0, 1, n_points)
+        signal = amplitude * np.sin(2 * np.pi * frequency * t + offset)
+        return signal
 
 class TemperatureChamber:
     def __init__(self, address='USB0::0x0000::0x0000::INSTR', timeout=5000, mock=False):

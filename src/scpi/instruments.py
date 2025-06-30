@@ -7,7 +7,7 @@ from typing import List, Optional, Tuple, Any
 
 
 class PowerSupply:
-    def __init__(self, address: str = 'GPIB0::5::INSTR', timeout: int = 5000) -> None:
+    def __init__(self, address: str = 'USB0::0x0000::0x0000::INSTR', timeout: int = 5000) -> None:
         self.rm: pyvisa.ResourceManager = pyvisa.ResourceManager()
         self.ps: Any = self.rm.open_resource(address)
         self.ps.write_termination = '\n'
@@ -129,7 +129,7 @@ class PowerSupply:
         self.connected = False
 
 class Oscilloscope:
-    def __init__(self, address='SPIB0::7::INSTR', timeout=5000, mock=False):
+    def __init__(self, address='USB0::0x0000::0x0000::INSTR', timeout=5000, mock=False):
         self.mock=mock
         self.connected = False
         if not self.mock:
@@ -202,7 +202,7 @@ class Oscilloscope:
         self.connected = False#
 
 class SpectrumAnalyzer:
-    def __init__(self, address='GPIB0::10::INSTR', timeout=5000, mock=False):
+    def __init__(self, address='USB0::0x0000::0x0000::INSTR', timeout=5000, mock=False):
         self.mock = mock
         self.connected = False
         if not self.mock:
@@ -255,7 +255,7 @@ class SpectrumAnalyzer:
         self.connected = False
 
 class TemperatureChamber:
-    def __init__(self, address='GPIB0::12::INSTR', timeout=5000, mock=False):
+    def __init__(self, address='USB0::0x0000::0x0000::INSTR', timeout=5000, mock=False):
         self.mock = mock
         self.connected = False
         if not self.mock:

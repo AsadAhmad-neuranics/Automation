@@ -1,0 +1,42 @@
+Input offset voltage--> Configure opamp as an inverting amplifier, apply zero input voltage and
+			measure the output.
+
+Input offset drift-->   Measure V_os at different temperatures then calculate the gradient.
+
+PSRR--> 
+
+Input bias current-->	Attach a high value resistor(100k to 1G ohm) in series with the input to the opamp, measure
+			the voltage drop across the resistor and calculate the current.
+
+Input offset current-->	Calculate the difference between the I_B currents at the non-inverting (+) and the the
+			inverting (-) terminals. I_OS = I_B+ - I_B-.
+
+Input voltage noise-->	Short the input to ground and measure the noise at the ouput then divide by the ASIC gain.
+
+Input current noise-->	Short the input to ground and monitor the ouput with a spectrum analyzer.
+
+Common-mode voltage range-->	The range of voltages within which the ASIC behaves linearly.
+
+CMRR-->	
+
+Differential input C-->	Use a network analyzer to measure the frequency response of the setup without the ASIC then
+			again with the ASIC. Identify the corner frequencies (the frequencies where the signal
+			amplitude drops by 3dB). Calculate the parasitic capacitance of the test setup, then use all
+			to calculate the ASIC's input capacitance.
+			
+			For it to be differential, the measurements have to be done between the two input pins of
+			the ASIC.
+
+Common-mode input C-->	Use a network analyzer to measure the impedence and phase shift of the input pins while 
+			applying a common mode voltage. Use the formula; Ccm = 1/(2 * pi * f *|z| * sin(theta)).
+
+Open-loop voltage gain-->	Inject a small AC signal into the ASIC and measure the resulting output voltage.
+				Ensure the output doesnt saturate since the open loop gain is usually very high.
+
+Gain-bandwidth product-->	Same setup as open loop gain, this time sweep through frequencies and determine
+				the opne loop gain at each frequency until the gain = 1 (0 dB).
+
+Slew rate-->	Apply a square wave input and measure the time it takes for the output voltage to transition between
+		specified voltage levels (e.g 10% to 90% of the output swing). The slew rate is then the voltage 
+		difference divided by this time.
+

@@ -3,28 +3,29 @@ import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 import pyvisa
 import time
+from typing import List, Optional, Tuple, Any
 
 
 class PowerSupply:
-    def __init__(self, address='GPIB0::5::INSTR', timeout=5000):
-        self.rm = pyvisa.ResourceManager()
-        self.ps = self.rm.open_resource(address)
+    def __init__(self, address: str = 'GPIB0::5::INSTR', timeout: int = 5000) -> None:
+        self.rm: pyvisa.ResourceManager = pyvisa.ResourceManager()
+        self.ps: Any = self.rm.open_resource(address)
         self.ps.write_termination = '\n'
         self.ps.timeout = timeout
-        self.connected = True
+        self.connected: bool = True
         self.ps.write('*RST')
         self.ps.write('*CLS')
-        idn = self.ps.query('*IDN?')
+        idn: str = self.ps.query('*IDN?')
         print(f'*IDN? = {idn.rstrip()}')
 
-    def setup_list(self, voltages, currents, dwells, bosts=None, eosts=None):
+    def setup_list(self, voltages: List[float], currents: List[float], dwells: List[float], bosts: List[float] = None, eosts: List[float] = None) -> None:  # type: ignore
         if bosts is None:
-            bosts = [0] * len(voltages)
+            bosts = [0.0] * len(voltages)
         if eosts is None:
-            eosts = [0] * len(voltages)
-        self.voltages = voltages
-        self.currents = currents
-        self.dwells = dwells
+            eosts = [0.0] * len(voltages)
+        self.voltages: List[float] = voltages
+        self.currents: List[float] = currents
+        self.dwells: List[float] = dwells
 
         self.ps.write('LIST:VOLT ' + ','.join(map(str, voltages)) + ',(@1)')
         self.ps.write('LIST:CURR ' + ','.join(map(str, currents)) + ',(@1)')
@@ -37,7 +38,7 @@ class PowerSupply:
         self.ps.write('LIST:COUNT 1,(@1)')
         self.ps.write('LIST:STEP AUTO,(@1)')
 
-    def setup_datalog(self, dlog_per=0.2):
+    def setup_datalog(self, dlog_per: float = 0.2) -> None:
         dlog_time = sum(self.dwells)
         self.dlog_time = dlog_time
         self.dlog_per = dlog_per
@@ -47,7 +48,7 @@ class PowerSupply:
         self.ps.write(f'SENS:DLOG:PER {dlog_per}')
         self.ps.write('TRIG:DLOG:SOUR BUS')
 
-    def run_list_and_log(self, log_filename="External:\\log1.csv", save_to="meas_data.txt"):
+    def run_list_and_log(self, log_filename: str = "External:\\log1.csv", save_to: str = "meas_data.txt") -> None:
         self.ps.write('OUTPUT ON,(@1)')
         self.ps.write('INIT (@1)')
         self.ps.write(f'INIT:DLOG "{log_filename}"')
@@ -91,13 +92,13 @@ class PowerSupply:
                 f.write(f"{rdata[i]}, {rdata[dlog_count + i]}\n")
         print('Done')
 
-    def measure_current(self):
+    def measure_current(self) -> float:
         """Measure and return the current output from the power supply (in Amps)."""
         current = float(self.ps.query('MEAS:CURR?'))
         print(f"Measured current: {current} A")
         return current
     
-    def turn_on_time(self, threshold=0.95, timeout=5.0, interval=0.01):
+    def turn_on_time(self, threshold: float = 0.95, timeout: float = 5.0, interval: float = 0.01) -> float:
         """
         Measure the turn-on time by enabling output and timing until current stabilizes.
         threshold: Fraction of final current to consider as 'on' (e.g., 0.95 for 95%)
@@ -122,7 +123,7 @@ class PowerSupply:
         print(f"Turn-on time: {turn_on_time:.3f} s")
         return turn_on_time
 
-    def close(self):
+    def close(self) -> None:
         self.ps.close()
         self.rm.close()
         self.connected = False
@@ -134,10 +135,10 @@ class Oscilloscope:
         if not self.mock:
             self.rm = pyvisa.ResourceManager()
             self.scope = self.rm.open_resource(address)
-            self.scope.write_termination = '\n'
+            self.scope.write_termination = '\n' # type: ignore
             self.scope.timeout = timeout
             self.connected = True
-            idn = self.scope.query('*IDN?')
+            idn = self.scope.query('*IDN?') # type: ignore
             print(f'*IDN? = {idn.rstrip()}')
         else:
             self.scope = None
@@ -147,10 +148,10 @@ class Oscilloscope:
         """Aquire waveform data from the oscilloscope or generate mock data."""
         if not self.mock:
             # Example SCPI commands, adjust for specific oscilloscope model
-            self.scope.write(f":WAV:SOUR CHAN{channel}")
-            self.scope.write(":WAV:MODE NORM")
-            self.scope.write(f":WAV:POIN {n_points}")
-            raw_data = self.scope.query_binary_values(":WAV:DATA?", datatype='B', container=np.array)
+            self.scope.write(f":WAV:SOUR CHAN{channel}") # type: ignore
+            self.scope.write(":WAV:MODE NORM") # type: ignore
+            self.scope.write(f":WAV:POIN {n_points}") # type: ignore
+            raw_data = self.scope.query_binary_values(":WAV:DATA?", datatype='B', container=np.array) # type: ignore
             voltages = raw_data # times some scale factor if needed
             timebase = np.linspace(0, n_points / sample_rate, n_points)
         else:
@@ -207,10 +208,10 @@ class SpectrumAnalyzer:
         if not self.mock:
             self.rm = pyvisa.ResourceManager()
             self.sa = self.rm.open_resource(address)
-            self.sa.write_termination = '\n'
+            self.sa.write_termination = '\n' # type: ignore
             self.sa.timeout = timeout
             self.connected = True
-            idn = self.sa.query('*IDN?')
+            idn = self.sa.query('*IDN?') # type: ignore
             print(f'*IDN? = {idn.rstrip()}')
         else:
             self.sa = None
@@ -218,9 +219,9 @@ class SpectrumAnalyzer:
 
     def configure(self, start_freq=1e3, stop_freq=1e6, rbw=1e3):
         if not self.mock:
-            self.sa.write(f'FREQ:START {start_freq}')
-            self.sa.write(f'FREQ:STOP {stop_freq}')
-            self.sa.write(f'BAND {rbw}')
+            self.sa.write(f'FREQ:START {start_freq}') # type: ignore
+            self.sa.write(f'FREQ:STOP {stop_freq}') # type: ignore
+            self.sa.write(f'BAND {rbw}') # type: ignore
         else:
             self.start_freq = start_freq
             self.stop_freq = stop_freq
@@ -228,10 +229,10 @@ class SpectrumAnalyzer:
 
     def trace(self, n_points=1001):
         if not self.mock:
-            self.sa.write(f'FORM ASC')
-            self.sa.write(f'TRAC:MODE WRIT')
-            data = self.sa.query_ascii_values(f'TRAC? TRACE1')
-            freqs = np.linspace(float(self.sa.query('FREQ:START?')), float(self.sa.query('FREQ:STOP?')), len(data))
+            self.sa.write(f'FORM ASC') # type: ignore
+            self.sa.write(f'TRAC:MODE WRIT') # type: ignore
+            data = self.sa.query_ascii_values(f'TRAC? TRACE1') # type: ignore
+            freqs = np.linspace(float(self.sa.query('FREQ:START?')), float(self.sa.query('FREQ:STOP?')), len(data)) # type: ignore
             return freqs, np.array(data)
         else:
             freqs = np.linspace(self.start_freq, self.stop_freq, n_points)
@@ -253,36 +254,51 @@ class SpectrumAnalyzer:
             self.rm.close()
         self.connected = False
 
+class TemperatureChamber:
+    def __init__(self, address='GPIB0::12::INSTR', timeout=5000, mock=False):
+        self.mock = mock
+        self.connected = False
+        if not self.mock:
+            self.rm = pyvisa.ResourceManager()
+            self.chamber = self.rm.open_resource(address)
+            self.chamber.write_termination = '\n' # type: ignore
+            self.chamber.timeout = timeout
+            self.connected = True
+            idn = self.chamber.query('*IDN?') # type: ignore
+            print(f'*IDN? = {idn.rstrip()}')
+        else:
+            self.chamber = None
+            self.connected = True
 
+    def set_temperature(self, temp_c):
+        if not self.mock:
+            self.chamber.write(f'TEMP {temp_c}') # type: ignore
+        else:
+            print(f"[MOCK] Set temperature to {temp_c} °C")
 
+    def get_temperature(self):
+        if not self.mock:
+            temp = float(self.chamber.query('MEAS:TEMP?')) # type: ignore
+            print(f"Current temperature: {temp} °C")
+            return temp
+        else:
+            print("[MOCK] Returning mock temperature: 25.0 °C")
+            return 25.0
 
+    def start(self):
+        if not self.mock:
+            self.chamber.write('START') # type: ignore
+        else:
+            print("[MOCK] Chamber start")
 
-'''
-class Instrument:
-    def __init__(self, address):
-            
-        self._address = address
-        self._isconnected = False
+    def stop(self):
+        if not self.mock:
+            self.chamber.write('STOP') # type: ignore
+        else:
+            print("[MOCK] Chamber stop")
 
-    def address(self):
-        return self._address
-    
-    def isconnected(self):
-        return self._isconnected
-
-    def connect(self):
-        # Code to establish a connection to the SCPI instrument
-        self._isconnected = True
-
-    def disconnect(self):
-        # Code to disconnect from the SCPI instrument
-        self._isconnected = False
-
-    def send_command(self, command):
-        if self._isconnected == False:
-            raise Exception("Instrument not connected")
-        # Code to send a SCPI command to the instrument and return the response
-        return f"Command '{command}' sent to {self.__address}"
-'''
-
-
+    def close(self):
+        if not self.mock and self.chamber:
+            self.chamber.close()
+            self.rm.close()
+        self.connected = False

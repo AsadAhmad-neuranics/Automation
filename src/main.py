@@ -8,7 +8,7 @@ from scpi.instruments import PowerSupply, Oscilloscope, SpectrumAnalyzer
 
 def main():
 
-    
+    '''
     ps = PowerSupply()
     
     # Measure quiescent current
@@ -36,6 +36,7 @@ def main():
     for i in range(len(peak_freqs)):
         print(f"Peak Frequency {i+1}: {peak_freqs[i]} Hz")
     osc.close()
+    '''
 
 
 if __name__ == "__main__":

@@ -15,7 +15,7 @@ class V_os:
     close():
         Closes the power supply and oscilloscope connections.
     """
-    def __init__(self, gain, ps_address='USB0::0x0000::0x0000::INSTR', osc_address='USB0::0x0000::0x0000::INSTR', chamber_address='USB0::0x0000::0x0000::INSTR'):
+    def __init__(self, gain, ps_address='USB0::0x2A8D::0x1002::MY61005055::0::INSTR', osc_address='USB0::0x0000::0x0000::INSTR', chamber_address='USB0::0x0000::0x0000::INSTR'):
         self.gain = gain
         self.ps = PowerSupply(address=ps_address)
         self.osc = Oscilloscope(address=osc_address)

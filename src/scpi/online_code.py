@@ -2,7 +2,7 @@ import pyvisa  # VISA wrapper
 import time  # time.sleep
 
 rm = pyvisa.ResourceManager()  # resource Manager instance
-ps = rm.open_resource('GPIB0::5::INSTR')  # IO resource instance
+ps = rm.open_resource('USB0::0x2A8D::0x1002::MY61005055::0::INSTR')  # IO resource instance
 ps.write_termination = '\n'  # termination character = <LF>
 ps.timeout = 5000            # set timeout 5 seconds
 

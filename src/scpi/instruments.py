@@ -7,7 +7,7 @@ from typing import List, Optional, Tuple, Any
 
 
 class PowerSupply:
-    def __init__(self, address: str = 'USB0::0x0000::0x0000::INSTR', timeout: int = 5000) -> None:
+    def __init__(self, address: str = 'USB0::0x2A8D::0x1002::MY61005055::0::INSTR', timeout: int = 5000) -> None:
         self.rm: pyvisa.ResourceManager = pyvisa.ResourceManager()
         self.ps: Any = self.rm.open_resource(address)
         self.ps.write_termination = '\n'

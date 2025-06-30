@@ -15,11 +15,11 @@ class V_os:
     close():
         Closes the power supply and oscilloscope connections.
     """
-    def __init__(self, gain, ps_address='USB0::0x2A8D::0x1002::MY61005055::0::INSTR', osc_address='USB0::0x0000::0x0000::INSTR', chamber_address='USB0::0x0000::0x0000::INSTR'):
+    def __init__(self, gain):
         self.gain = gain
-        self.ps = PowerSupply(address=ps_address)
-        self.osc = Oscilloscope(address=osc_address)
-        self.tc = TemperatureChamber(address=chamber_address)
+        self.ps = PowerSupply()
+        self.osc = Oscilloscope()
+        self.tc = TemperatureChamber()
         self.tc.set_temperature(initial_temp)  # Set initial temperature
 
     def measure(self, v_in=0.0, channel=1, n_points=1000, sample_rate=1000):
@@ -55,8 +55,8 @@ class V_os_drift(V_os):
     close():
         Closes the power supply, oscilloscope, and temperature chamber connections.
     """
-    def __init__(self, gain, ps_address='USB0::0x0000::0x0000::INSTR', osc_address='USB0::0x0000::0x0000::INSTR', chamber_address='USB0::0x0000::0x0000::INSTR'):
-        super().__init__(gain, ps_address, osc_address, chamber_address)
+    def __init__(self, gain):
+        super().__init__(gain)
 
     def measure_drift(self, temp_list, v_in=0.0, channel=1, n_points=1000, sample_rate=1000, settle_time=120):
         """
@@ -110,11 +110,11 @@ class I_B:
     close():
         Closes the power supply and oscilloscope connections.
     """
-    def __init__(self, gain, ps_address='USB0::0x0000::0x0000::INSTR', osc_address='USB0::0x0000::0x0000::INSTR', chamber_address='USB0::0x0000::0x0000::INSTR',res: float = 10000):
+    def __init__(self, gain, res: float = 10000):
         self.gain = gain
-        self.ps = PowerSupply(address=ps_address)
-        self.osc = Oscilloscope(address=osc_address)
-        self.tc = TemperatureChamber(address=chamber_address)
+        self.ps = PowerSupply()
+        self.osc = Oscilloscope()
+        self.tc = TemperatureChamber()
         self.tc.set_temperature(initial_temp)  # Set initial temperature
         self.resistance = res  # Resistance in ohms
 

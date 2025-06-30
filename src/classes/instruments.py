@@ -2,126 +2,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 import pyvisa
-import time
-from typing import List, Optional, Tuple, Any
 
 
 class PowerSupply:
-    def __init__(self, address: str = 'USB0::0x2A8D::0x1002::MY61005055::0::INSTR', timeout: int = 5000) -> None:
-        self.rm: pyvisa.ResourceManager = pyvisa.ResourceManager()
-        self.ps: Any = self.rm.open_resource(address)
+    def __init__(self, address= 'USB0::0x2A8D::0x1002::MY61005055::0::INSTR', timeout= 5000):
+        self.rm = pyvisa.ResourceManager()
+        self.ps = self.rm.open_resource(address)
         self.ps.write_termination = '\n'
         self.ps.timeout = timeout
-        self.connected: bool = True
+        self.connected = True
         self.ps.write('*RST')
-        self.ps.write('*CLS')
-        idn: str = self.ps.query('*IDN?')
-        print(f'*IDN? = {idn.rstrip()}')
-
-    def setup_list(self, voltages: List[float], currents: List[float], dwells: List[float], bosts: List[float] = None, eosts: List[float] = None) -> None:  # type: ignore
-        if bosts is None:
-            bosts = [0.0] * len(voltages)
-        if eosts is None:
-            eosts = [0.0] * len(voltages)
-        self.voltages: List[float] = voltages
-        self.currents: List[float] = currents
-        self.dwells: List[float] = dwells
-
-        self.ps.write('LIST:VOLT ' + ','.join(map(str, voltages)) + ',(@1)')
-        self.ps.write('LIST:CURR ' + ','.join(map(str, currents)) + ',(@1)')
-        self.ps.write('LIST:DWEL ' + ','.join(map(str, dwells)) + ',(@1)')
-        self.ps.write('LIST:TOUT:BOST ' + ','.join(map(str, bosts)) + ',(@1)')
-        self.ps.write('LIST:TOUT:EOST ' + ','.join(map(str, eosts)) + ',(@1)')
-        self.ps.write('VOLT:MODE LIST,(@1)')
-        self.ps.write('CURR:MODE LIST,(@1)')
-        self.ps.write('TRIG:SOUR BUS,(@1)')
-        self.ps.write('LIST:COUNT 1,(@1)')
-        self.ps.write('LIST:STEP AUTO,(@1)')
-
-    def setup_datalog(self, dlog_per: float = 0.2) -> None:
-        dlog_time = sum(self.dwells)
-        self.dlog_time = dlog_time
-        self.dlog_per = dlog_per
-        self.ps.write('SENS:DLOG:FUNC:VOLT 1,(@1)')
-        self.ps.write('SENS:DLOG:FUNC:CURR 1,(@1)')
-        self.ps.write(f'SENS:DLOG:TIME {dlog_time}')
-        self.ps.write(f'SENS:DLOG:PER {dlog_per}')
-        self.ps.write('TRIG:DLOG:SOUR BUS')
-
-    def run_list_and_log(self, log_filename: str = "External:\\log1.csv", save_to: str = "meas_data.txt") -> None:
-        self.ps.write('OUTPUT ON,(@1)')
-        self.ps.write('INIT (@1)')
-        self.ps.write(f'INIT:DLOG "{log_filename}"')
-
-        # Wait for both list and datalog to be ready for trigger
-        mask = 0x80 | 0x100
-        for _ in range(10):
-            time.sleep(0.1)
-            reg = int(self.ps.query('STAT:QUES:INST:ISUM1:COND?'))
-            print('STAT:QUES:INST:ISUM1:COND? = ' + hex(reg))
-            if (reg & mask) == mask:
-                print('LIST and DLOG Waiting trigger detected')
-                break
-        else:
-            print('Could not detect waiting trigger')
-            self.ps.write('OUTPUT OFF,(@1)')
-            return
-
-        self.ps.write('*TRG')
-        print('DLOG time =', int(self.dlog_time))
-        print('Waiting ', end='', flush=True)
-        for _ in range(int(self.dlog_time + 1)):
-            time.sleep(1.0)
-            print('.', end='', flush=True)
-        print()
-
-        self.ps.write('OUTPUT OFF,(@1)')
-        dlog_count = int(self.dlog_time / self.dlog_per)
-        self.ps.write(f'FETC:DLOG? {dlog_count * 2},(@1)')
-        rdata = self.ps.read_ascii_values()
-
-        # Error checking
-        err = ''
-        while 'No error' not in err:
-            err = self.ps.query('SYST:ERR?')
-            print('SYST:ERR? = ' + err.rstrip())
-
-        # Save data
-        with open(save_to, 'w') as f:
-            for i in range(dlog_count):
-                f.write(f"{rdata[i]}, {rdata[dlog_count + i]}\n")
-        print('Done')
-
-    def measure_current(self) -> float:
-        """Measure and return the current output from the power supply (in Amps)."""
-        current = float(self.ps.query('MEAS:CURR?'))
-        print(f"Measured current: {current} A")
-        return current
-    
-    def turn_on_time(self, threshold: float = 0.95, timeout: float = 5.0, interval: float = 0.01) -> float:
-        """
-        Measure the turn-on time by enabling output and timing until current stabilizes.
-        threshold: Fraction of final current to consider as 'on' (e.g., 0.95 for 95%)
-        timeout: Maximum time to wait in seconds
-        interval: Time between measurements in seconds
-        """
-        self.ps.write('OUTP ON')
-        start_time = time.time()
-        currents = []
-        while True:
-            current = self.measure_current()
-            currents.append(current)
-            if len(currents) > 5:
-                avg = sum(currents[-5:]) / 5
-                if avg > 0 and current >= threshold * avg:
-                    break
-            if time.time() - start_time > timeout:
-                print("Timeout waiting for turn-on.")
-                break
-            time.sleep(interval)
-        turn_on_time = time.time() - start_time
-        print(f"Turn-on time: {turn_on_time:.3f} s")
-        return turn_on_time
 
     def close(self) -> None:
         self.ps.close()

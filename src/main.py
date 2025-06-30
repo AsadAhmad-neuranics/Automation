@@ -3,15 +3,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pyvisa
-from classes.instruments import PowerSupply, Oscilloscope, SpectrumAnalyzer
+from classes.instruments import PowerSupply, Oscilloscope, SpectrumAnalyzer, TemperatureChamber
+from classes.measurements import V_os, V_os_drift, I_B
 
 def main():
     # Initialize VISA resource manager
-    rm = pyvisa.ResourceManager(r"C:\Windows\System32\visa64.dll")
+    rm = pyvisa.ResourceManager()
     resources = rm.list_resources()
     print("Available resources:", resources)
-
-
 
 
 if __name__ == "__main__":

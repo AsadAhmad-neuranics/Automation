@@ -1,6 +1,6 @@
 import numpy as np
 import time
-from instruments import Oscilloscope, SpectrumAnalyzer, PowerSupply, TemperatureChamber
+from .instruments import Oscilloscope, SpectrumAnalyzer, PowerSupply, TemperatureChamber
 
 initial_temp = 25  # Default temperature for measurements
 

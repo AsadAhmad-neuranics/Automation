@@ -3,6 +3,8 @@ matplotlib
 pyvisa
 pytest
 scipy
+time
+typing
 
 # Note: pyvisa requires a VISA backend (e.g., NI-VISA or Keysight IO Libraries Suite) to be installed separately.
 # For a GUI, install Keysight Connection Expert.

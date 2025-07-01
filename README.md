@@ -25,7 +25,7 @@ pip install -r requirements.txt
 ```python
 from classes.measurements import InputOffsetVoltage
 vos = InputOffsetVoltage(gain=10)
-vos.measure(voltages=[0.1, 0.2, 0.3, 0.4, 0.5], currents=[1.2, 1.2, 1.2, 1.2, 1.2], dwells = [3.0, 1.5, 1.0, 1.5, 3.0])
+vos.measure(voltages=[0.0, 0.0, 0.0, 0.0, 0.0], currents=[1.2, 1.2, 1.2, 1.2, 1.2], dwells = [3.0, 1.5, 1.0, 1.5, 3.0])
 vos.close()
 ```
 4. **Read The Ouput CSV File**: The methods should create a CSV file in the same directory

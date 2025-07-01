@@ -22,7 +22,7 @@ class OpenLoopGain:
         
         osc = Oscilloscope()
         
-        self.input_signal = input_signal
+        self.input_signal = osc.input_signal_sin()
         self.output_signal = output_signal
     
     def measure_gain(self):
@@ -80,26 +80,53 @@ class InputOffsetVoltage:
     def __init__(self, gain=gain_currently):
         self.gain = gain
         self.ps = PowerSupply()
-        self.osc = Oscilloscope()
         self.tc = TemperatureChamber()
         self.tc.set_temperature(initial_temp)  # Set initial temperature
 
-    def measure(self, v_in=0.0, channel=1, n_points=1000, sample_rate=1000):
-        # Set input voltage to v_in
-        self.ps.ps.write(f'VOLT {v_in}')
-        self.ps.ps.write('OUTP ON')
-        time.sleep(1)  # Wait for stabilization
-        # Measure output voltage using oscilloscope
-        timebase, voltages = self.osc.waveform(channel=channel, n_points=n_points, sample_rate=sample_rate)
-        v_offset = voltages / self.gain  # List of V_offset values
-        self.ps.ps.write('OUTP OFF')
-        self.V_in = v_in
+    def measure(self, voltages=[], currents=[], dwells=[]):
+        """
+        Sets the voltage, current, and dwell time for the power supply.
+        
+        Parameters
+        ----------
+        voltages : list
+            List of voltages to set.
+        currents : list
+            List of currents to set.
+        dwells : list
+            List of dwell times for each voltage/current setting.
+        """
+        if len(voltages) != len(currents) or len(voltages) != len(dwells):
+            raise ValueError("All input lists must have the same length.")
+        
+        results = []
+
+        self.ps.write('OUTPUT ON', '(@1)')  # Turn on output for channel 1
+        
+        for v, c, dwell in zip(voltages, currents, dwells):
+            self.ps.write(f'VOLT {v}', '(@1)')  # Set voltage for channel 1
+            self.ps.write(f'CURR {c}', '(@1)')  # Set current for channel 1
+            print(f'Set V={v}V, I={c}A, waiting {dwell}s...')
+            time.sleep(dwell)
+            v_meas = float(self.ps.query('MEAS:VOLT?', '(@1)'))  # Measure voltage for channel 1
+            v_offset = v_meas / self.gain # Calculate V_offset
+            c_meas = float(self.ps.query('MEAS:CURR?', '(@1)'))  # Measure current for channel 1
+            print(f'Measured V={v_meas:.4f}V, I={c_meas:.4f}A')
+            results.append((v_offset, c_meas))
+
+        with open('data\\input_offset_voltage_data.txt', 'w') as f:
+            f.write("V_offset, Current\n")
+            for v, c in results:
+                f.write(f"{v}, {c}\n")
+
+        '''
         mean = np.mean(v_offset)
         std = np.std(v_offset)
         self.V_typical = mean + 0.47 * std  # 68th percentile
         self.V_max = np.amax(v_offset)  # Maximum output voltage
-
-        return self.V_typical, self.V_max
+        '''
+        
+        self.ps.write('OUTPUT OFF')
 
     def close(self):
         self.ps.close()

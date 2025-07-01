@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 import pyvisa
+import time
 
 
 class PowerSupply:
@@ -12,6 +13,10 @@ class PowerSupply:
         self.ps.timeout = timeout
         self.connected = True
         self.ps.write('*RST')
+        self.ps.write('*CLS')
+        idn = self.ps.query('*IDN?')
+        print(f'*IDN? = {idn.rstrip()}')
+    
 
     def close(self) -> None:
         self.ps.close()
@@ -25,7 +30,7 @@ class Oscilloscope:
         self.osc.write_termination = '\n'
         self.osc.timeout = timeout
         self.connected = True
-        self.ps.write('*RST')
+        self.osc.write('*RST')
     
     def input_signal_sin(self, channel=1, n_points=1000, frequency=1000, amplitude=1.0, offset=0.0):
         """
@@ -51,6 +56,7 @@ class Oscilloscope:
         """
         t = np.linspace(0, 1, n_points)
         signal = amplitude * np.sin(2 * np.pi * frequency * t + offset)
+        self.osc.write('')
         return signal
 
 class TemperatureChamber:

@@ -1,3 +1,11 @@
+'''
+This code is for Keysight E36313A Power Supply, and does not work for E36311A.
+'''
+
+
+
+
+
 import pyvisa  # VISA wrapper
 import time  # time.sleep
 

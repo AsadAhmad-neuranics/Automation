@@ -73,7 +73,7 @@ class signal_gen:
     def __init__(self):
         self.sg = SignalGenerator()
 
-    def show(self):
+    def show_single(self):
         if not self.sg.connected:
             print("Failed to connect to Signal Generator.")
             return
@@ -107,11 +107,11 @@ class double_gen():
             self.primary.square(frequency=frequency, amplitude=amplitude, offset=offset, phase=0)
             self.secondary.square(frequency=frequency, amplitude=amplitude, offset=offset, phase=180)
         # Arm both outputs (do not start, just enable)
-        self.primary.enable_output(True)
-        self.secondary.enable_output(True)
+        self.primary.enable_output(False)
+        self.secondary.enable_output(False)
         print("Both generators armed. Ready start output.")
 
-    def show(self):
+    def show_double(self):
         if not self.primary.connected:
             print("Failed to connect to Signal Generator.")
             return
@@ -119,18 +119,16 @@ class double_gen():
             while True:
                 duration = float(input("Enter duration in seconds (0 to exit): "))
                 if duration <= 0:
-                    self.primary.close()
-                    self.secondary.close()
                     break
-                else:
-                    type_ = input("Enter signal type (sin, square): ").strip().lower()
-                    frequency = float(input("Enter frequency in Hz: "))
-                    amplitude = float(input("Enter amplitude in mV: "))
-                    offset = float(input("Enter offset in mV: "))
-                    if type_== 'sin':
-                        self.primary.sin(frequency=frequency, amplitude=amplitude, offset=offset, duration=duration)
-                    elif type_ == 'square':
-                        self.primary.square(frequency=frequency, amplitude=amplitude, offset=offset, duration=duration)
+                else:                  
+                    # Enable outputs
+                    self.primary.enable_output(True)
+                    self.secondary.enable_output(True)
+                    time.sleep(duration)
+                    # Disable outputs
+                    self.primary.enable_output(False)
+                    self.secondary.enable_output(False)
+                    
 
     def close(self):
         self.primary.close()

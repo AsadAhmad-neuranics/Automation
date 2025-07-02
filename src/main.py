@@ -17,10 +17,11 @@ def main():
     print("Available resources:", resources)
     
 # In your main code
-gen = double_gen(addr_primary='USB0::0x0957::0x2707::MY62004397::0::INSTR',
-                 addr_secondary='USB0::0x0957::0x2707::MY62004362::INSTR')
-gen.configure_and_wait(type_='sin', frequency=1000, amplitude=1000, offset=0)
-gen.show()
+gen = double_gen(addr_primary=generator1_address,
+                 addr_secondary=generator2_address)
+gen.configure_and_wait(type_='sin', frequency=1000, amplitude=50, offset=0)
+gen.show_double()
+gen.close()
 
 
     
@@ -28,4 +29,5 @@ gen.show()
 
 if __name__ == "__main__":
     main()
+
 

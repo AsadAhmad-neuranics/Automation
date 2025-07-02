@@ -12,6 +12,7 @@ class PowerSupply:
         self.connected = True
         self.ps.write('*RST')
         self.ps.write('*CLS')
+        
         idn = self.ps.query('*IDN?')
         print(f'*IDN? = {idn.rstrip()}')
     
@@ -30,15 +31,15 @@ class SignalGenerator:
         self.role = role
         self.sg.write('*RST')
         self.sg.write('*CLS')
+        self.sg.write('TRIG:MODE TRIG')
         idn = self.sg.query('*IDN?')
         print(f'*IDN? = {idn.rstrip()}')
-        # Set reference and trigger sources based on role
-        if self.role == 'primary':
-            self.sg.write('ROSC:SOUR INT')
+
+        if role == 'primary':
             self.sg.write('TRIG:SOUR EXT')
-        elif self.role == 'secondary':
             self.sg.write('ROSC:SOUR EXT')
-            self.sg.write('TRIG:SOUR EXT')
+        elif role == 'secondary':
+            self.sg.write('TRIG:SOUR INT')
 
     def close(self):
         self.sg.close()
@@ -61,6 +62,7 @@ class SignalGenerator:
     def enable_output(self, enable=True):
         self.sg.write('OUTP ON' if enable else 'OUTP OFF')
 
+            
 
 
 

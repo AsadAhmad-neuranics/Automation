@@ -1,7 +1,7 @@
 # SCPI Framework
 
 ## Overview
-The SCPI Framework is a Python-based library for automating the measurement of analog ASIC parameters using SCPI-compliant lab instruments connected via USB. It provides an object-oriented interface to control power supplies, oscilloscopes, spectrum analyzers, and temperature chambers for tasks such as measuring input offset voltage (`V_os`), input offset voltage drift (`V_os_drift`), and input bias current (`I_B`).
+The SCPI Framework is a Python-based library for automating the measurement of analog ASIC parameters using SCPI-compliant lab instruments connected via USB. It provides an object-oriented interface to control power supplies, oscilloscopes, spectrum analyzers, and temperature chambers for tasks such as measuring input offset voltage (`InputOffsetVoltage`), input offset voltage drift (`InputOffsetVoltage_drift`), and input bias current (`InputBiasCurrent`).
 
 ## Features
 - **USB Instrument Management**: Connect to SCPI instruments over USB using PyVISA.
@@ -25,7 +25,9 @@ pip install -r requirements.txt
 ```python
 from classes.measurements import InputOffsetVoltage
 vos = InputOffsetVoltage(gain=10)
-vos.measure(voltages=[0.0, 0.0, 0.0, 0.0, 0.0], currents=[1.2, 1.2, 1.2, 1.2, 1.2], dwells = [3.0, 1.5, 1.0, 1.5, 3.0])
+vos.measure(voltages=[0.0, 0.0, 0.0, 0.0, 0.0], 
+            currents=[1.2, 1.2, 1.2, 1.2, 1.2], 
+            dwells = [3.0, 1.5, 1.0, 1.5, 3.0])
 vos.close()
 ```
 4. **Read The Ouput CSV File**: The methods should create a CSV file in the same directory
